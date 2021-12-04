@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -6,12 +8,14 @@
 
 class FILESYS {
 public:
+	std::string delimiter = "VYBQ@!^BEAW&D^";  //random bytes to get delimer in decoding
+
 	int init() {
 		printf("\n:::::::::::::::::::\n");
 		printf("::DENZ MP3 AES128::\n");
 		printf("::      2021     ::\n");
 		printf(":::::::::::::::::::\n\n");
-		printf("FILESYS: Good!\n\n");
+		printf("FILESYS: OK!\n\n");
 		return 1;
 	}
 
@@ -36,7 +40,6 @@ public:
 		std::stringstream ss;
 		ss << as.rdbuf();
 		std::string s = ss.str();
-		std::string delimiter = "VYBQ@!^BEAW&D^";
 
 		size_t pos = 0;
 		std::string token;
@@ -57,32 +60,32 @@ public:
 		printf("::ENCODE::\n");
 
 		//file container
-		printf("Reading: %s\n", mainFile);
+		printf("PASS #1 Reading %s ", mainFile);
 		std::ifstream mainStream(mainFile, std::ios::out | std::ios::binary);
 		std::stringstream mainBuffer;
-		mainBuffer << mainStream.rdbuf() << "VYBQ@!^BEAW&D^";  //random bytes to get delimer in decoding
+		mainBuffer << mainStream.rdbuf() << delimiter;
+		printf("OK!\n");
 
 		//what to write
-		printf("Reading: %s\n", dataFile);
+		printf("PASS #2 Reading %s ", dataFile);
 		std::ifstream dataStream(dataFile, std::ios::out | std::ios::binary);
 		std::stringstream dataBuffer;
 		dataBuffer << dataStream.rdbuf();
-		
+		printf("OK!\n");
+
+		printf("PASS #3 Crypting data ");
 		AES aes(128);
 		unsigned int aesLen;
 		BYTE* out = aes.EncryptECB((unsigned char*)dataBuffer.str().c_str(), dataBuffer.str().size(), (unsigned char*)key, aesLen);
-		printf("PASS #1 Data was crypted\n");
+		printf("OK!\n");
 
-		for (size_t i = 0; i < dataBuffer.str().size(); i++) { // Bruh, any another way?
-			mainBuffer << out[i];
-		}
-		printf("PASS #2 Data injected in mp3\n");
+		mainBuffer.write((char*)out, aesLen);
 
+		printf("PASS #4 Injecting data to file ");
 		std::ofstream f2("./out.mp3", std::ios::out | std::ios::binary);
 		f2.write(mainBuffer.str().c_str(), mainBuffer.str().size());
 		f2.close();
-
-		printf("PASS #3 File was written\n");
+		printf("OK!\n");
 	}
 
 	void decodeInput(char* mainFile, char* dataFile, char* _key) {
@@ -91,35 +94,33 @@ public:
 
 		printf("::DECODE::\n");
 
-		printf("Reading: %s\n", mainFile);
+		printf("PASS #1 Read file ");
 		std::ifstream mainStream(mainFile, std::ios::out | std::ios::binary);
-
 		std::stringstream mainBuffer;
 		mainBuffer << mainStream.rdbuf();
-
-		printf("PASS #1 File was read\n");
+		printf("OK!\n");
+		
 		std::string mainBufferS = mainBuffer.str();
-		std::string delimiter = "VYBQ@!^BEAW&D^";
 
+		printf("PASS #2 Searching for signature ");
 		size_t pos = 0;
 		std::string token;
 		while ((pos = mainBufferS.find(delimiter)) != std::string::npos) {
 			token = mainBufferS.substr(0, pos);
 			mainBufferS.erase(0, pos + delimiter.length());
 		}
+		printf("OK!\n");
 
-		printf("PASS #2 Found start of data\n");
-
+		printf("PASS #3 Decrypting data ");
 		AES aes(128);
 		unsigned int aesLen = mainBufferS.size();
 		BYTE* out = aes.DecryptECB((unsigned char*)mainBufferS.c_str(), aesLen, (unsigned char*)key);
+		printf("OK!\n");
 
-		printf("PASS #3 Data was decrypted\n");
-
+		printf("PASS #4 Writing to file ");
 		std::ofstream dataStream(dataFile, std::ios::out | std::ios::binary);
 		dataStream.write((char*)out, aesLen);
 		dataStream.close();
-
-		printf("PASS #4 File was writen\n");
+		printf("OK!\n");
 	}
 };

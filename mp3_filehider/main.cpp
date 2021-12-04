@@ -15,7 +15,7 @@
 int main(int argc, char** argv) {
 	if (argc == 1)
 		return 1;
-
+	//TODO : FIX 2 BYTES NOT WRITED ON END OF ENCRYPTED
 	FILESYS filesys;
 	filesys.init();
 
