@@ -1,5 +1,4 @@
 #include "fileManipulator.h"
-#include <iostream>
 
 // ENCODE
 // ./run.exe e original.mp3      filetocrypt.txt  key
@@ -7,18 +6,18 @@
 // DECODE
 // ./run.exe d crypted_file.mp3  out.txt          key
 
-//CHECK FILE FOR DATA
+// CHECK FILE FOR DATA
 // ./run.exe c crypted_file.mp3     
 
-//unsigned char key[16] = "Vmf7jDGsCWXXX78"; key must look like that
-
+//unsigned char key[16] = "XXXXXXXXXXXXXXX"; key must look like that
+//you can use any length to 16
+                           
 int main(int argc, char** argv) {
-	if (argc < 1)
-		return 0;
+	if (argc == 1)
+		return 1;
 
 	FILESYS filesys;
 	filesys.init();
-	std::cout << "Running FILESYS\n";
 
 	switch (*argv[1]) {
 		case 'e':
