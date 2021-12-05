@@ -62,6 +62,10 @@ public:
 		//file container
 		printf("PASS #1 Reading %s ", mainFile);
 		std::ifstream mainStream(mainFile, std::ios::out | std::ios::binary);
+		if (!mainStream.good()) {
+			printf("ERR!\n");
+			return;
+		}
 		std::stringstream mainBuffer;
 		mainBuffer << mainStream.rdbuf() << delimiter;
 		printf("OK!\n");
@@ -69,15 +73,25 @@ public:
 		//What to write
 		printf("PASS #2 Reading %s ", dataFile);
 		std::ifstream dataStream(dataFile, std::ios::out | std::ios::binary);
+		if (!dataStream.good()) {
+			printf("ERR!\n");
+			return;
+		}	
 		std::stringstream dataBuffer;
 		dataBuffer << dataStream.rdbuf();
 		printf("OK!\n");
 
-		printf("PASS #3 Compressing data ");
+		
 		uLong src_len = dataBuffer.str().size();
 		uLong cmp_len = compressBound(src_len);
+		printf("PASS #3 Compressing data %u to ", src_len);
 		unsigned char* pCmp = (mz_uint8*)malloc((size_t)cmp_len);
-		compress(pCmp, &cmp_len, (const unsigned char*)dataBuffer.str().c_str(), src_len);
+		int comp_status = compress(pCmp, &cmp_len, (const unsigned char*)dataBuffer.str().c_str(), src_len);
+		if (comp_status != 0) {
+			printf("ERR!\n");
+			return;
+		}
+		printf("%u ", cmp_len);
 		printf("OK!\n");
 
 		printf("PASS #4 Crypting data ");
@@ -88,9 +102,14 @@ public:
 
 		printf("PASS #5 Injecting data to file ");
 		mainBuffer.write((char*)out, aesLen);
-		std::ofstream f2("./out.mp3", std::ios::out | std::ios::binary);
-		f2.write(mainBuffer.str().c_str(), mainBuffer.str().size());
-		f2.close();
+		std::ofstream outputStream("./out.mp3", std::ios::out | std::ios::binary);
+		if (!outputStream.good()) {
+			printf("ERR!\n");
+			return;
+		}
+		outputStream.write(mainBuffer.str().c_str(), mainBuffer.str().size());
+		outputStream.close();
+
 		printf("OK!\n");
 	}
 
@@ -102,6 +121,10 @@ public:
 
 		printf("PASS #1 Read file ");
 		std::ifstream mainStream(mainFile, std::ios::out | std::ios::binary);
+		if (!mainStream.good()) {
+			printf("ERR!\n");
+			return;
+		}
 		std::stringstream mainBuffer;
 		mainBuffer << mainStream.rdbuf();
 		printf("OK!\n");
@@ -123,14 +146,22 @@ public:
 		printf("OK!\n");
 
 		printf("PASS #4 Decompressing data ");
-		uLong src_len = 1000000000;// mainBufferS.size(); // HOW THE FUCK I MUST KNOW ORIGINAL SIZE?
+		uLong src_len = 100000000;// mainBufferS.size(); // HOW THE FUCK I MUST KNOW ORIGINAL SIZE?
 		uLong uncomp_len = src_len;
 		unsigned char* pUncomp = (mz_uint8*)malloc((size_t)src_len);
-		uncompress(pUncomp, &uncomp_len, out, src_len);
+		int comp_status = uncompress(pUncomp, &uncomp_len, out, src_len);
+		if (comp_status != 0) {
+			printf("ERR! %d\n", comp_status);
+			return;
+		}
 		printf("OK!\n");
 
 		printf("PASS #4 Writing to file ");
 		std::ofstream dataStream(dataFile, std::ios::out | std::ios::binary);
+		if (!dataStream.good()) {
+			printf("ERR!\n");
+			return;
+		}
 		dataStream.write((char*)pUncomp, uncomp_len);
 		dataStream.close();
 		printf("OK!\n");
