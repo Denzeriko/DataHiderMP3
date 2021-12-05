@@ -143,10 +143,12 @@
   <ItemGroup>
     <ClCompile Include="aes.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="miniz.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aes.h" />
     <ClInclude Include="fileManipulator.h" />
+    <ClInclude Include="miniz.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

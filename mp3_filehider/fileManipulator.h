@@ -1,10 +1,10 @@
-#define _CRT_SECURE_NO_WARNINGS
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <windows.h>
+
 #include "aes.h"
+#include "miniz.h"
 
 class FILESYS {
 public:
@@ -66,22 +66,28 @@ public:
 		mainBuffer << mainStream.rdbuf() << delimiter;
 		printf("OK!\n");
 
-		//what to write
+		//What to write
 		printf("PASS #2 Reading %s ", dataFile);
 		std::ifstream dataStream(dataFile, std::ios::out | std::ios::binary);
 		std::stringstream dataBuffer;
 		dataBuffer << dataStream.rdbuf();
 		printf("OK!\n");
 
-		printf("PASS #3 Crypting data ");
-		AES aes(128);
-		unsigned int aesLen;
-		BYTE* out = aes.EncryptECB((unsigned char*)dataBuffer.str().c_str(), dataBuffer.str().size(), (unsigned char*)key, aesLen);
+		printf("PASS #3 Compressing data ");
+		uLong src_len = dataBuffer.str().size();
+		uLong cmp_len = compressBound(src_len);
+		unsigned char* pCmp = (mz_uint8*)malloc((size_t)cmp_len);
+		compress(pCmp, &cmp_len, (const unsigned char*)dataBuffer.str().c_str(), src_len);
 		printf("OK!\n");
 
-		mainBuffer.write((char*)out, aesLen);
+		printf("PASS #4 Crypting data ");
+		AES aes(128);
+		unsigned int aesLen;
+		BYTE* out = aes.EncryptECB(pCmp, cmp_len, (unsigned char*)key, aesLen);
+		printf("OK!\n");
 
-		printf("PASS #4 Injecting data to file ");
+		printf("PASS #5 Injecting data to file ");
+		mainBuffer.write((char*)out, aesLen);
 		std::ofstream f2("./out.mp3", std::ios::out | std::ios::binary);
 		f2.write(mainBuffer.str().c_str(), mainBuffer.str().size());
 		f2.close();
@@ -100,11 +106,10 @@ public:
 		mainBuffer << mainStream.rdbuf();
 		printf("OK!\n");
 		
-		std::string mainBufferS = mainBuffer.str();
-
 		printf("PASS #2 Searching for signature ");
 		size_t pos = 0;
 		std::string token;
+		std::string mainBufferS = mainBuffer.str();
 		while ((pos = mainBufferS.find(delimiter)) != std::string::npos) {
 			token = mainBufferS.substr(0, pos);
 			mainBufferS.erase(0, pos + delimiter.length());
@@ -117,9 +122,16 @@ public:
 		BYTE* out = aes.DecryptECB((unsigned char*)mainBufferS.c_str(), aesLen, (unsigned char*)key);
 		printf("OK!\n");
 
+		printf("PASS #4 Decompressing data ");
+		uLong src_len = 1000000000;// mainBufferS.size(); // HOW THE FUCK I MUST KNOW ORIGINAL SIZE?
+		uLong uncomp_len = src_len;
+		unsigned char* pUncomp = (mz_uint8*)malloc((size_t)src_len);
+		uncompress(pUncomp, &uncomp_len, out, src_len);
+		printf("OK!\n");
+
 		printf("PASS #4 Writing to file ");
 		std::ofstream dataStream(dataFile, std::ios::out | std::ios::binary);
-		dataStream.write((char*)out, aesLen);
+		dataStream.write((char*)pUncomp, uncomp_len);
 		dataStream.close();
 		printf("OK!\n");
 	}
